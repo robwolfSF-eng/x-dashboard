@@ -58,7 +58,17 @@ if sheet_url:
                 st.markdown(f"**Source:** {row.get('Source', 'N/A')} | **{selected_metric}:** {row.get(selected_metric, 0)}")
                 
                 # The code that actually embeds the X post
-                url = row['URL']
+# The code that actually embeds the X post
+                # We force x.com to become twitter.com so the embed script recognizes it
+                url = str(row['URL']).replace("x.com", "twitter.com")
+                
+                embed_html = f"""
+                <blockquote class="twitter-tweet">
+                    <a href="{url}"></a>
+                </blockquote>
+                <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+                """
+                components.html(embed_html, height=500, scrolling=True)
                 embed_html = f"""
                 <blockquote class="twitter-tweet">
                     <a href="{url}"></a>
