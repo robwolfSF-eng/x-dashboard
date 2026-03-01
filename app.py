@@ -16,14 +16,20 @@ def load_data(csv_url):
         st.error(f"Could not load data. Exact error: {e}")
         return pd.DataFrame()
 
-# Helper function to safely format numbers with commas
+# --- UPGRADED: Bulletproof Number Formatter ---
 def fmt_number(val):
     try:
         if pd.isna(val):
             return "0"
-        return f"{int(float(val)):,}" # Converts to float, then int to strip decimals, then formats
+        
+        # If Google Sheets sent text with commas (e.g., "1,500"), strip the commas out first
+        if isinstance(val, str):
+            val = val.replace(',', '').strip()
+            
+        return f"{int(float(val)):,}"
     except (ValueError, TypeError):
-        return "0"
+        # If it's weird text we can't do math on (like "N/A" or "1.5K"), just print the text natively
+        return str(val) if pd.notna(val) else "0"
 
 # 3. Sidebar - Data Connection
 st.sidebar.header("1. Connect Data")
@@ -99,14 +105,16 @@ if sheet_url:
             account_text = row.get('Account', 'N/A')
             source_text = row.get('Source', 'N/A')
             
-            # 2. Grab and format all metrics with commas
+            # 2. Grab and format all metrics safely
             rt_val = fmt_number(row.get('Retweets', 0))
             reply_val = fmt_number(row.get('Replies', 0))
             quote_val = fmt_number(row.get('Quotes', 0))
             like_val = fmt_number(row.get('Likes', 0))
             view_val = fmt_number(row.get('Views', 0))
             eng_val = fmt_number(row.get('Engagements', 0))
-            mean_eng_val = fmt_number(row.get('Meaningful engagements', 0))
+            
+            # Make sure this exact spelling matches your Google Sheet header!
+            mean_eng_val = fmt_number(row.get('Meaningful engagements', 0)) 
             
             # 3. Build our Custom Scoreboard
             st.markdown(f"### 🏅 Rank #{rank} (Sorted by {selected_metric})")
