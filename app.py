@@ -33,31 +33,51 @@ if sheet_url:
     if not df.empty:
         st.sidebar.header("2. Dashboard Filters")
         
-        # --- NEW: Account Filter ---
-        available_accounts = df['Account'].dropna().unique().tolist()
-        selected_accounts = st.sidebar.multiselect("Select Account(s):", available_accounts, default=available_accounts)
-        
+        # Account Filter (Added error handling in case the Account column is missing)
+        if 'Account' in df.columns:
+            available_accounts = df['Account'].dropna().unique().tolist()
+            selected_accounts = st.sidebar.multiselect("Select Account(s):", available_accounts, default=available_accounts)
+        else:
+            selected_accounts = []
+            st.sidebar.warning("No 'Account' column found in the spreadsheet.")
+            
         # Source Filter
-        available_sources = df['Source'].dropna().unique().tolist()
-        selected_sources = st.sidebar.multiselect("Select Source(s):", available_sources, default=available_sources)
+        if 'Source' in df.columns:
+            available_sources = df['Source'].dropna().unique().tolist()
+            selected_sources = st.sidebar.multiselect("Select Source(s):", available_sources, default=available_sources)
+        else:
+            selected_sources = []
+            st.sidebar.warning("No 'Source' column found in the spreadsheet.")
         
-        # Metric Filter
-        metrics = ['Retweets', 'Replies', 'Likes', 'Views', 'Bookmarks', 'Engagements', 'Meaningful engagements']
-        selected_metric = st.sidebar.selectbox("Rank posts by:", metrics)
+        # --- NEW: Bulletproof Metric Filter ---
+        # We tell Python the columns that are NOT metrics, so it knows the rest ARE metrics
+        non_metric_columns = ['URL', 'Source', 'Account', 'Date', 'Text'] 
+        available_metrics = [col for col in df.columns if col not in non_metric_columns]
+        
+        if available_metrics:
+            selected_metric = st.sidebar.selectbox("Rank posts by:", available_metrics)
+        else:
+            st.error("Could not find any metric columns to sort by. Please check your Google Sheet.")
+            st.stop() # Stops the app from trying to run the rest of the code and crashing
         
         # Top N Filter
         max_posts = len(df)
         top_n = st.sidebar.slider("Number of posts to display (Top N):", min_value=1, max_value=max_posts, value=min(5, max_posts))
         
-        # Apply BOTH filters to the data (Account AND Source)
-        filtered_df = df[
-            (df['Account'].isin(selected_accounts)) & 
-            (df['Source'].isin(selected_sources))
-        ]
+        # Apply the filters (Only apply them if the columns actually exist)
+        filtered_df = df.copy()
+        if 'Account' in df.columns and selected_accounts:
+            filtered_df = filtered_df[filtered_df['Account'].isin(selected_accounts)]
+        if 'Source' in df.columns and selected_sources:
+            filtered_df = filtered_df[filtered_df['Source'].isin(selected_sources)]
         
-        # THE BOUNCER: Drop duplicate URLs
-        filtered_df = filtered_df.drop_duplicates(subset=['URL'])
-        
+        # THE BOUNCER: Drop duplicate URLs (if URL column exists)
+        if 'URL' in filtered_df.columns:
+            filtered_df = filtered_df.drop_duplicates(subset=['URL'])
+        else:
+            st.error("CRITICAL: No 'URL' column found. I cannot display embeds without links.")
+            st.stop()
+            
         # Sort and get the Top N
         sorted_df = filtered_df.sort_values(by=selected_metric, ascending=False).head(top_n)
         
@@ -67,8 +87,12 @@ if sheet_url:
         for index, row in sorted_df.iterrows():
             st.markdown("---")
             
-            # --- NEW: Added Account to the display text ---
-            st.markdown(f"**Account:** {row.get('Account', 'N/A')} | **Source:** {row.get('Source', 'N/A')} | **{selected_metric}:** {row.get(selected_metric, 0)}")
+            # Safely get Account and Source text
+            account_text = row.get('Account', 'N/A')
+            source_text = row.get('Source', 'N/A')
+            metric_val = row.get(selected_metric, 0)
+            
+            st.markdown(f"**Account:** {account_text} | **Source:** {source_text} | **{selected_metric}:** {metric_val}")
             
             # The code that actually embeds the X post
             url = str(row['URL']).replace("x.com", "twitter.com")
@@ -83,3 +107,4 @@ if sheet_url:
 
 else:
     st.info("👈 Please paste your published Google Sheet CSV link in the sidebar to load the dashboard.")
+            
