@@ -16,19 +16,15 @@ def load_data(csv_url):
         st.error(f"Could not load data. Exact error: {e}")
         return pd.DataFrame()
 
-# --- UPGRADED: Bulletproof Number Formatter ---
+# Bulletproof Number Formatter
 def fmt_number(val):
     try:
         if pd.isna(val):
             return "0"
-        
-        # If Google Sheets sent text with commas (e.g., "1,500"), strip the commas out first
         if isinstance(val, str):
             val = val.replace(',', '').strip()
-            
         return f"{int(float(val)):,}"
     except (ValueError, TypeError):
-        # If it's weird text we can't do math on (like "N/A" or "1.5K"), just print the text natively
         return str(val) if pd.notna(val) else "0"
 
 # 3. Sidebar - Data Connection
@@ -36,7 +32,6 @@ st.sidebar.header("1. Connect Data")
 st.sidebar.markdown("Paste your *Published as CSV* Google Sheet link below.")
 sheet_url = st.sidebar.text_input("Google Sheet CSV URL:")
 
-# --- REFRESH BUTTON ---
 if st.sidebar.button("🔄 Refresh Data"):
     st.cache_data.clear()
     st.sidebar.success("Fetching fresh data!")
@@ -46,6 +41,12 @@ if sheet_url:
     df = load_data(sheet_url)
     
     if not df.empty:
+        
+        # --- 🚨 THE DEBUG DETECTIVE 🚨 ---
+        # This will print a yellow box at the top of your app with the EXACT column names
+        st.warning(f"**DEBUG MODE - Column Names Seen by Python:** {df.columns.tolist()}")
+        # ---------------------------------
+        
         st.sidebar.header("2. Dashboard Filters")
         
         # Account Filter 
@@ -54,7 +55,6 @@ if sheet_url:
             selected_accounts = st.sidebar.multiselect("Select Account(s):", available_accounts, default=available_accounts)
         else:
             selected_accounts = []
-            st.sidebar.warning("No 'Account' column found in the spreadsheet.")
             
         # Source Filter
         if 'Source' in df.columns:
@@ -62,7 +62,6 @@ if sheet_url:
             selected_sources = st.sidebar.multiselect("Select Source(s):", available_sources, default=available_sources)
         else:
             selected_sources = []
-            st.sidebar.warning("No 'Source' column found in the spreadsheet.")
         
         # Bulletproof Metric Filter
         non_metric_columns = ['URL', 'Source', 'Account', 'Date', 'Text'] 
@@ -98,42 +97,4 @@ if sheet_url:
         # 5. Display the Data
         st.subheader(f"Top {top_n} Posts Ranked by {selected_metric}")
         
-        for rank, (index, row) in enumerate(sorted_df.iterrows(), start=1):
-            st.markdown("---")
-            
-            # 1. Grab text data safely
-            account_text = row.get('Account', 'N/A')
-            source_text = row.get('Source', 'N/A')
-            
-            # 2. Grab and format all metrics safely
-            rt_val = fmt_number(row.get('Retweets', 0))
-            reply_val = fmt_number(row.get('Replies', 0))
-            quote_val = fmt_number(row.get('Quotes', 0))
-            like_val = fmt_number(row.get('Likes', 0))
-            view_val = fmt_number(row.get('Views', 0))
-            eng_val = fmt_number(row.get('Engagements', 0))
-            
-            # Make sure this exact spelling matches your Google Sheet header!
-            mean_eng_val = fmt_number(row.get('Meaningful engagements', 0)) 
-            
-            # 3. Build our Custom Scoreboard
-            st.markdown(f"### 🏅 Rank #{rank} (Sorted by {selected_metric})")
-            st.markdown(f"**👤 Account:** {account_text} &nbsp;|&nbsp; **🏷️ Source:** {source_text}")
-            
-            # Split into two lines for clean reading
-            st.markdown(f"**🔄 Retweets:** {rt_val} &nbsp;|&nbsp; **💬 Replies:** {reply_val} &nbsp;|&nbsp; **🦜 Quotes:** {quote_val} &nbsp;|&nbsp; **❤️ Likes:** {like_val}")
-            st.markdown(f"**👁️ Views:** {view_val} &nbsp;|&nbsp; **💍 Engagements:** {eng_val} &nbsp;|&nbsp; **💪 Meaningful engagements:** {mean_eng_val}")
-            
-            # 4. The official X embed
-            url = str(row.get('URL', '')).replace("x.com", "twitter.com")
-            
-            embed_html = f"""
-            <blockquote class="twitter-tweet" data-theme="light">
-                <a href="{url}"></a>
-            </blockquote>
-            <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-            """
-            components.html(embed_html, height=800, scrolling=False)
-
-else:
-    st.info("👈 Please paste your published Google Sheet CSV link in the sidebar to load the dashboard.")
+        for rank, (index, row) in enumerate(sorted_df.iterrows(), start=1
