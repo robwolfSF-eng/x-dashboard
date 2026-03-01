@@ -43,27 +43,23 @@ if sheet_url:
     if not df.empty:
         
         # --- 🚨 THE DEBUG DETECTIVE 🚨 ---
-        # This will print a yellow box at the top of your app with the EXACT column names
         st.warning(f"**DEBUG MODE - Column Names Seen by Python:** {df.columns.tolist()}")
         # ---------------------------------
         
         st.sidebar.header("2. Dashboard Filters")
         
-        # Account Filter 
         if 'Account' in df.columns:
             available_accounts = df['Account'].dropna().unique().tolist()
             selected_accounts = st.sidebar.multiselect("Select Account(s):", available_accounts, default=available_accounts)
         else:
             selected_accounts = []
             
-        # Source Filter
         if 'Source' in df.columns:
             available_sources = df['Source'].dropna().unique().tolist()
             selected_sources = st.sidebar.multiselect("Select Source(s):", available_sources, default=available_sources)
         else:
             selected_sources = []
         
-        # Bulletproof Metric Filter
         non_metric_columns = ['URL', 'Source', 'Account', 'Date', 'Text'] 
         available_metrics = [col for col in df.columns if col not in non_metric_columns]
         
@@ -73,28 +69,54 @@ if sheet_url:
             st.error("Could not find any metric columns to sort by. Please check your Google Sheet.")
             st.stop() 
         
-        # Top N Filter
         max_posts = len(df)
         top_n = st.sidebar.slider("Number of posts to display (Top N):", min_value=1, max_value=max_posts, value=min(5, max_posts))
         
-        # Apply the filters 
         filtered_df = df.copy()
         if 'Account' in df.columns and selected_accounts:
             filtered_df = filtered_df[filtered_df['Account'].isin(selected_accounts)]
         if 'Source' in df.columns and selected_sources:
             filtered_df = filtered_df[filtered_df['Source'].isin(selected_sources)]
         
-        # Drop duplicate URLs
         if 'URL' in filtered_df.columns:
             filtered_df = filtered_df.drop_duplicates(subset=['URL'])
         else:
             st.error("CRITICAL: No 'URL' column found. I cannot display embeds without links.")
             st.stop()
             
-        # Sort and get the Top N
         sorted_df = filtered_df.sort_values(by=selected_metric, ascending=False).head(top_n)
         
-        # 5. Display the Data
         st.subheader(f"Top {top_n} Posts Ranked by {selected_metric}")
         
-        for rank, (index, row) in enumerate(sorted_df.iterrows(), start=1
+        for rank, (index, row) in enumerate(sorted_df.iterrows(), start=1):
+            st.markdown("---")
+            
+            account_text = row.get('Account', 'N/A')
+            source_text = row.get('Source', 'N/A')
+            
+            rt_val = fmt_number(row.get('Retweets', 0))
+            reply_val = fmt_number(row.get('Replies', 0))
+            quote_val = fmt_number(row.get('Quotes', 0))
+            like_val = fmt_number(row.get('Likes', 0))
+            view_val = fmt_number(row.get('Views', 0))
+            eng_val = fmt_number(row.get('Engagements', 0))
+            mean_eng_val = fmt_number(row.get('Meaningful engagements', 0)) 
+            
+            st.markdown(f"### 🏅 Rank #{rank} (Sorted by {selected_metric})")
+            st.markdown(f"**👤 Account:** {account_text} &nbsp;|&nbsp; **🏷️ Source:** {source_text}")
+            
+            st.markdown(f"**🔄 Retweets:** {rt_val} &nbsp;|&nbsp; **💬 Replies:** {reply_val} &nbsp;|&nbsp; **🦜 Quotes:** {quote_val} &nbsp;|&nbsp; **❤️ Likes:** {like_val}")
+            st.markdown(f"**👁️ Views:** {view_val} &nbsp;|&nbsp; **💍 Engagements:** {eng_val} &nbsp;|&nbsp; **💪 Meaningful engagements:** {mean_eng_val}")
+            
+            url = str(row.get('URL', '')).replace("x.com", "twitter.com")
+            
+            embed_html = f"""
+            <blockquote class="twitter-tweet" data-theme="light">
+                <a href="{url}"></a>
+            </blockquote>
+            <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+            """
+            components.html(embed_html, height=800, scrolling=False)
+
+else:
+    st.info("👈 Please paste your published Google Sheet CSV link in the sidebar to load the dashboard.")
