@@ -81,20 +81,30 @@ if sheet_url:
         # Sort and get the Top N
         sorted_df = filtered_df.sort_values(by=selected_metric, ascending=False).head(top_n)
         
-        # 5. Display the Data
+      
+# 5. Display the Data
         st.subheader(f"Top {top_n} Posts Ranked by {selected_metric}")
         
-        for index, row in sorted_df.iterrows():
+        # We use enumerate to get the ranking number (1st, 2nd, 3rd, etc.)
+        for rank, (index, row) in enumerate(sorted_df.iterrows(), start=1):
             st.markdown("---")
             
-            # Safely get Account and Source text
+            # 1. Grab all the data safely
             account_text = row.get('Account', 'N/A')
             source_text = row.get('Source', 'N/A')
-            metric_val = row.get(selected_metric, 0)
             
-            st.markdown(f"**Account:** {account_text} | **Source:** {source_text} | **{selected_metric}:** {metric_val}")
+            # Use 0 as a default if the cell is blank in your sheet
+            rt_val = row.get('Retweets', 0)
+            reply_val = row.get('Replies', 0)
+            like_val = row.get('Likes', 0)
+            view_val = row.get('Views', 0)
             
-            # The code that actually embeds the X post
+            # 2. Build our Custom Scoreboard
+            st.markdown(f"### 🏅 Rank #{rank} (Sorted by {selected_metric})")
+            st.markdown(f"**👤 Account:** {account_text} &nbsp;|&nbsp; **🏷️ Source:** {source_text}")
+            st.markdown(f"**🔄 Retweets:** {rt_val} &nbsp;|&nbsp; **💬 Replies:** {reply_val} &nbsp;|&nbsp; **❤️ Likes:** {like_val} &nbsp;|&nbsp; **👁️ Views:** {view_val}")
+            
+            # 3. The official X embed (Visuals only)
             url = str(row['URL']).replace("x.com", "twitter.com")
             
             embed_html = f"""
