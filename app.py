@@ -33,6 +33,10 @@ if sheet_url:
     if not df.empty:
         st.sidebar.header("2. Dashboard Filters")
         
+        # --- NEW: Account Filter ---
+        available_accounts = df['Account'].dropna().unique().tolist()
+        selected_accounts = st.sidebar.multiselect("Select Account(s):", available_accounts, default=available_accounts)
+        
         # Source Filter
         available_sources = df['Source'].dropna().unique().tolist()
         selected_sources = st.sidebar.multiselect("Select Source(s):", available_sources, default=available_sources)
@@ -45,8 +49,11 @@ if sheet_url:
         max_posts = len(df)
         top_n = st.sidebar.slider("Number of posts to display (Top N):", min_value=1, max_value=max_posts, value=min(5, max_posts))
         
-        # Apply the filters to the data
-        filtered_df = df[df['Source'].isin(selected_sources)]
+        # Apply BOTH filters to the data (Account AND Source)
+        filtered_df = df[
+            (df['Account'].isin(selected_accounts)) & 
+            (df['Source'].isin(selected_sources))
+        ]
         
         # THE BOUNCER: Drop duplicate URLs
         filtered_df = filtered_df.drop_duplicates(subset=['URL'])
@@ -59,7 +66,9 @@ if sheet_url:
         
         for index, row in sorted_df.iterrows():
             st.markdown("---")
-            st.markdown(f"**Source:** {row.get('Source', 'N/A')} | **{selected_metric}:** {row.get(selected_metric, 0)}")
+            
+            # --- NEW: Added Account to the display text ---
+            st.markdown(f"**Account:** {row.get('Account', 'N/A')} | **Source:** {row.get('Source', 'N/A')} | **{selected_metric}:** {row.get(selected_metric, 0)}")
             
             # The code that actually embeds the X post
             url = str(row['URL']).replace("x.com", "twitter.com")
