@@ -41,11 +41,6 @@ if sheet_url:
     df = load_data(sheet_url)
     
     if not df.empty:
-        
-        # --- 🚨 THE DEBUG DETECTIVE 🚨 ---
-        st.warning(f"**DEBUG MODE - Column Names Seen by Python:** {df.columns.tolist()}")
-        # ---------------------------------
-        
         st.sidebar.header("2. Dashboard Filters")
         
         if 'Account' in df.columns:
@@ -100,13 +95,15 @@ if sheet_url:
             like_val = fmt_number(row.get('Likes', 0))
             view_val = fmt_number(row.get('Views', 0))
             eng_val = fmt_number(row.get('Engagements', 0))
-            mean_eng_val = fmt_number(row.get('Meaningful engagements', 0)) 
+            
+            # THE FIX: We updated this exact string to have the capital "E"
+            mean_eng_val = fmt_number(row.get('Meaningful Engagements', 0)) 
             
             st.markdown(f"### 🏅 Rank #{rank} (Sorted by {selected_metric})")
             st.markdown(f"**👤 Account:** {account_text} &nbsp;|&nbsp; **🏷️ Source:** {source_text}")
             
             st.markdown(f"**🔄 Retweets:** {rt_val} &nbsp;|&nbsp; **💬 Replies:** {reply_val} &nbsp;|&nbsp; **🦜 Quotes:** {quote_val} &nbsp;|&nbsp; **❤️ Likes:** {like_val}")
-            st.markdown(f"**👁️ Views:** {view_val} &nbsp;|&nbsp; **💍 Engagements:** {eng_val} &nbsp;|&nbsp; **💪 Meaningful engagements:** {mean_eng_val}")
+            st.markdown(f"**👁️ Views:** {view_val} &nbsp;|&nbsp; **💍 Engagements:** {eng_val} &nbsp;|&nbsp; **💪 Meaningful Engagements:** {mean_eng_val}")
             
             url = str(row.get('URL', '')).replace("x.com", "twitter.com")
             
