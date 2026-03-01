@@ -24,6 +24,7 @@ sheet_url = st.sidebar.text_input("Google Sheet CSV URL:")
 # 4. Main App Logic
 if sheet_url:
     df = load_data(sheet_url)
+    st.write("Columns found in sheet:", df.columns.tolist())
     
     if not df.empty:
         st.sidebar.header("2. Dashboard Filters")
