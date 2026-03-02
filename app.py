@@ -43,36 +43,33 @@ if sheet_url:
     if not df.empty:
         st.sidebar.header("2. Dashboard Filters")
         
-        # --- UPDATED: Account Filter (Checkboxes) ---
+        # Account Filter (Checkboxes)
         if 'Account' in df.columns:
             st.sidebar.markdown("**Select Account(s):**")
             available_accounts = df['Account'].dropna().unique().tolist()
             selected_accounts = []
             
-            # Draw a checkbox for each account and default it to True (Checked)
             for account in available_accounts:
-                # We use a unique 'key' so Streamlit doesn't get confused between identical names
                 if st.sidebar.checkbox(str(account), value=True, key=f"acc_{account}"):
                     selected_accounts.append(account)
         else:
             selected_accounts = []
             
-        st.sidebar.markdown("---") # Add a small visual divider
+        st.sidebar.markdown("---") 
             
-        # --- UPDATED: Source Filter (Checkboxes) ---
+        # Source Filter (Checkboxes)
         if 'Source' in df.columns:
             st.sidebar.markdown("**Select Source(s):**")
             available_sources = df['Source'].dropna().unique().tolist()
             selected_sources = []
             
-            # Draw a checkbox for each source
             for source in available_sources:
                 if st.sidebar.checkbox(str(source), value=True, key=f"src_{source}"):
                     selected_sources.append(source)
         else:
             selected_sources = []
             
-        st.sidebar.markdown("---") # Add another divider before the next filter
+        st.sidebar.markdown("---") 
         
         # Bulletproof Metric Filter
         non_metric_columns = ['URL', 'Source', 'Account', 'Date', 'Text'] 
@@ -84,9 +81,10 @@ if sheet_url:
             st.error("Could not find any metric columns to sort by. Please check your Google Sheet.")
             st.stop() 
         
-        # Top N Filter
+        # --- UPDATED: Top N Filter (Number Input) ---
         max_posts = len(df)
-        top_n = st.sidebar.slider("Number of posts to display (Top N):", min_value=1, max_value=max_posts, value=min(5, max_posts))
+        # Swapped slider for number_input, added step=1 to ensure whole numbers, and injected the max limit into the label
+        top_n = st.sidebar.number_input(f"Number of posts to display (Max: {max_posts}):", min_value=1, max_value=max_posts, value=min(5, max_posts), step=1)
         
         # Apply the filters 
         filtered_df = df.copy()
