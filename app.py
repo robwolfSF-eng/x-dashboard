@@ -43,18 +43,38 @@ if sheet_url:
     if not df.empty:
         st.sidebar.header("2. Dashboard Filters")
         
+        # --- UPDATED: Account Filter (Checkboxes) ---
         if 'Account' in df.columns:
+            st.sidebar.markdown("**Select Account(s):**")
             available_accounts = df['Account'].dropna().unique().tolist()
-            selected_accounts = st.sidebar.multiselect("Select Account(s):", available_accounts, default=available_accounts)
+            selected_accounts = []
+            
+            # Draw a checkbox for each account and default it to True (Checked)
+            for account in available_accounts:
+                # We use a unique 'key' so Streamlit doesn't get confused between identical names
+                if st.sidebar.checkbox(str(account), value=True, key=f"acc_{account}"):
+                    selected_accounts.append(account)
         else:
             selected_accounts = []
             
+        st.sidebar.markdown("---") # Add a small visual divider
+            
+        # --- UPDATED: Source Filter (Checkboxes) ---
         if 'Source' in df.columns:
+            st.sidebar.markdown("**Select Source(s):**")
             available_sources = df['Source'].dropna().unique().tolist()
-            selected_sources = st.sidebar.multiselect("Select Source(s):", available_sources, default=available_sources)
+            selected_sources = []
+            
+            # Draw a checkbox for each source
+            for source in available_sources:
+                if st.sidebar.checkbox(str(source), value=True, key=f"src_{source}"):
+                    selected_sources.append(source)
         else:
             selected_sources = []
+            
+        st.sidebar.markdown("---") # Add another divider before the next filter
         
+        # Bulletproof Metric Filter
         non_metric_columns = ['URL', 'Source', 'Account', 'Date', 'Text'] 
         available_metrics = [col for col in df.columns if col not in non_metric_columns]
         
@@ -64,23 +84,28 @@ if sheet_url:
             st.error("Could not find any metric columns to sort by. Please check your Google Sheet.")
             st.stop() 
         
+        # Top N Filter
         max_posts = len(df)
         top_n = st.sidebar.slider("Number of posts to display (Top N):", min_value=1, max_value=max_posts, value=min(5, max_posts))
         
+        # Apply the filters 
         filtered_df = df.copy()
         if 'Account' in df.columns and selected_accounts:
             filtered_df = filtered_df[filtered_df['Account'].isin(selected_accounts)]
         if 'Source' in df.columns and selected_sources:
             filtered_df = filtered_df[filtered_df['Source'].isin(selected_sources)]
         
+        # Drop duplicate URLs
         if 'URL' in filtered_df.columns:
             filtered_df = filtered_df.drop_duplicates(subset=['URL'])
         else:
             st.error("CRITICAL: No 'URL' column found. I cannot display embeds without links.")
             st.stop()
             
+        # Sort and get the Top N
         sorted_df = filtered_df.sort_values(by=selected_metric, ascending=False).head(top_n)
         
+        # 5. Display the Data
         st.subheader(f"Top {top_n} Posts Ranked by {selected_metric}")
         
         for rank, (index, row) in enumerate(sorted_df.iterrows(), start=1):
@@ -95,8 +120,6 @@ if sheet_url:
             like_val = fmt_number(row.get('Likes', 0))
             view_val = fmt_number(row.get('Views', 0))
             eng_val = fmt_number(row.get('Engagements', 0))
-            
-            # THE FIX: We updated this exact string to have the capital "E"
             mean_eng_val = fmt_number(row.get('Meaningful Engagements', 0)) 
             
             st.markdown(f"### 🏅 Rank #{rank} (Sorted by {selected_metric})")
