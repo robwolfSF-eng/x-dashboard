@@ -16,7 +16,7 @@ def load_data(csv_url):
         st.error(f"Could not load data. Exact error: {e}")
         return pd.DataFrame()
 
-# Bulletproof Number Formatter
+# Bulletproof Number Formatter (For Display)
 def fmt_number(val):
     try:
         if pd.isna(val):
@@ -75,15 +75,22 @@ if sheet_url:
         non_metric_columns = ['URL', 'Source', 'Account', 'Date', 'Text'] 
         available_metrics = [col for col in df.columns if col not in non_metric_columns]
         
+        # --- THE FIX: Convert all metric columns to actual Math Numbers before sorting ---
+        for col in available_metrics:
+            # 1. Turn it to text to safely strip commas
+            df[col] = df[col].astype(str).str.replace(',', '', regex=False)
+            # 2. Force it to be a math number (coerce turns weird text into NaN, fillna turns NaN to 0)
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        # --------------------------------------------------------------------------------
+        
         if available_metrics:
             selected_metric = st.sidebar.selectbox("Rank posts by:", available_metrics)
         else:
             st.error("Could not find any metric columns to sort by. Please check your Google Sheet.")
             st.stop() 
         
-        # --- UPDATED: Top N Filter (Number Input) ---
+        # Top N Filter (Number Input)
         max_posts = len(df)
-        # Swapped slider for number_input, added step=1 to ensure whole numbers, and injected the max limit into the label
         top_n = st.sidebar.number_input(f"Number of posts to display (Max: {max_posts}):", min_value=1, max_value=max_posts, value=min(5, max_posts), step=1)
         
         # Apply the filters 
